@@ -1,3 +1,40 @@
+/*
+ [The "BSD licence"]
+ Copyright (c) 2017 Allen Kanapala
+ All rights reserved.
+
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+ 3. The name of the author may not be used to endorse or promote products
+    derived from this software without specific prior written permission.
+
+ THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+/** 
+ *  You can test with
+ *
+ *  $ antlr4 Java.g4
+ *  $ javac *.java
+ *  $ grun Java compilationUnit *.java
+ *  $ java -cp "antlr-4.5.3-complete.jar:.:$PATH" VisitorParser yourFileNameUnderTest.java
+ */
+
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -25,7 +62,7 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 	public static void main(String[] args) throws IOException {
 	
 	//handles the input arguments provided during runtime.
-//	try{
+	try{
 		if(args.length==0){
 			System.out.println("Please provide the path and filename to be parsed. Eg: java VisitorParser ./folder1/filename.java ");
 			}
@@ -46,11 +83,11 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 				System.out.println("Program Analysis Completed. \n");
 				
 				}
-/*		}     
+		}     
 		catch(Exception e1){
 			System.out.println("Caught IO Exception. Check the argument includes the correct path and the filename"+e1.getMessage());
 			}
-*/	}
+	}
 
 	private String CurrentClassAttribute = null;
 	private int classNameCounter = 0;
@@ -93,6 +130,7 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 		return visitChildren(ctx); 
 	 }
 	
+
 	/**
 	 * The following method should collect the import statements used inside the class accessed
 	 */
@@ -131,9 +169,8 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 	**/
 	@Override 
 	public Void visitConstructorDeclaration(JavaParser.ConstructorDeclarationContext ctx) {
-		//add class constructor counter. And some mechanism to list it on csv.******************
 		currentClassConstructorName = ctx.getChild(0).getText();
-		classLevelMethodNames.put(currentClassConstructorName, CurrentClassAttribute); //may need improvement.
+		classLevelMethodNames.put(currentClassConstructorName, CurrentClassAttribute);
 		return super.visitConstructorDeclaration(ctx); }
 		
 			
@@ -154,39 +191,31 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 	}
 	
 
-	
-	@Override 
-	public Void visitFormalParameters(JavaParser.FormalParametersContext ctx) {
-		System.out.println("listing:"+ctx.getChild(0).getText());
-		
-		return super.visitFormalParameters(ctx); }
-		
-		
+	/**
+	* Used to map the parameters of a method in the class.
+	*/
 	@Override 
 	public Void visitFormalParameterList(JavaParser.FormalParameterListContext ctx) {
-		System.out.println("Parameter #####$$$$$"+ctx.getText());
 		for(int i=0; i<ctx.getChildCount(); i=i+2){
 		String paramType = ctx.getChild(i).getChild(0).getText();
 		String paramName = ctx.getChild(i).getChild(1).getText();
-		//Map methodParametersMap1 = new HashMap();  //Creating a local map seems to avoid the issue of appending params from all methods into the same map.
-		methodParametersMap.put(paramName,paramType);
-		System.out.println("Parameter Level Map : "+methodParametersMap.entrySet());
 		
+		methodParametersMap.put(paramName,paramType);
+
 		if(methodParamDetails.get(currentMethodName) != null){
 			((HashMap<String, String>)methodParamDetails.get(currentMethodName)).put(paramName,paramType);
-			System.out.println("Method Level Parameter Map : "+methodParamDetails.entrySet());
 		}
 		else{
 			methodParamDetails.put(currentMethodName,new HashMap<String,String>());
 			((HashMap<String, String>)methodParamDetails.get(currentMethodName)).put(paramName,paramType);
 			
-		//	methodParamDetails.put(currentMethodName,methodParametersMap);
-			System.out.println("Method Level Parameter Map : "+methodParamDetails.entrySet());
 			}	
 		}
 		return super.visitFormalParameterList(ctx); }
 		
-	
+	/**
+	* Used to map the field declarations in the class.
+	*/
 	@Override
 	public Void visitFieldDeclaration(JavaParser.FieldDeclarationContext ctx) { 
 		HashMap<String,String> lVariableMap1 = new HashMap<>();
@@ -194,35 +223,32 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 		if(ctx.getChildCount()==2){
 			String fieldDataTypeListed = ctx.getChild(0).getText();
 			String fieldNameListed = ctx.getChild(1).getText();
-			System.out.println("WHAAAATTTTT");
 			
 			lVariableMap1.put(fieldNameListed, fieldDataTypeListed);
 			}
 			else if(ctx.getChildCount()>2 && ctx.getText().contains("=")){
-				System.out.println("WHADDDDDD");
 				String fieldDataTypeListed = ctx.getChild(0).getText();
 				String fieldNameListed = ctx.getChild(1).getText().substring(0,ctx.getChild(1).getText().indexOf("="));
 				
 				lVariableMap1.put(fieldNameListed, fieldDataTypeListed);
 				}
-				else if(ctx.getChildCount()>2 && !ctx.getText().contains("=")){	//NEED TO ADD EXTRA CHECKS TO CONSIDER MULTIPLE field declarations.
-					System.out.println("WHACCCCCCC");
+				else if(ctx.getChildCount()>2 && !ctx.getText().contains("=")){	
 					String fieldDataTypeListed = ctx.getChild(0).getText();
 					String fieldNameListed = ctx.getChild(1).getText();
-					
 					lVariableMap1.put(fieldNameListed, fieldDataTypeListed);
-					System.out.println("DT : "+fieldDataTypeListed+"\t Name: "+fieldNameListed);
 					}
 					else{
 						System.out.println("There are no local variables found.");
 						}
 		
-		
-		System.out.println("Local Variable Map 1: "+lVariableMap1);
 		classLevelLocalVariableMap.put(lVariableMap1,CurrentClassAttribute);
-		return visitChildren(ctx); }
+		return visitChildren(ctx);
+	}
 		
-		
+	
+	/**
+	*Used to identify the statement under consideration by the current object.
+	*/
 	@Override
 	public Void visitBlockStatement(JavaParser.BlockStatementContext ctx) {
 		if(ctx.getChildCount() != 0){
@@ -234,7 +260,6 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 				System.out.println("Block Statement "+i+":"+ctx.getChild(i).getText());
 			}
 		}
-		
 		return super.visitBlockStatement(ctx); }
 	
 		
@@ -257,38 +282,23 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 				variableName = expression.substring(0,expression.indexOf(';'));
 			}
 
-			System.out.println("variableName: " +variableName);
-			System.out.println("datatype: " +dataType);
 			
 			if(variableName != null  &&  dataType != null){
 			//Storing the details of local variables in a map.
 			HashMap<String,String> lVariableMap2 = new HashMap<>();
 			lVariableMap2.put(variableName,dataType);
 			
-			System.out.println("Local Variable Map 2 : "+lVariableMap2+"\n \n");
-			
-				//store the class & method level couplings
-				
+				//store the class & method level couplings	
 						classLevelLocalVariableMap.put(lVariableMap2, CurrentClassAttribute);
-						System.out.println("Class level coupling info: \n"+classLevelLocalVariableMap.entrySet()+"\n \n");
-						
+
 						
 						//Complex Map implementation.
-						if(methodLevelLocalVariableMap.get(currentMethodName) != null){
-						
-					//	((HashMap<String, String>)methodLevelLocalVariableMap.get(currentMethodName)).putAll(lVariableMap2);
-						
+						if(methodLevelLocalVariableMap.get(currentMethodName) != null){						
 							((HashMap<String, String>)methodLevelLocalVariableMap.get(currentMethodName)).put(variableName,dataType);
-						
-					//	methodLevelLocalVariableMap.put(currentMethodName, (HashMap<String,String>)lVariableMap2);
-							System.out.println("Method level coupling info ###########: \n"+methodLevelLocalVariableMap.entrySet()+"\n \n");
 						}
 						else{
 							methodLevelLocalVariableMap.put(currentMethodName,new HashMap<String,String>());
 							((HashMap<String, String>)methodLevelLocalVariableMap.get(currentMethodName)).put(variableName,dataType);
-						//	methodLevelLocalVariableMap.put(currentMethodName, (HashMap<String,String>)lVariableMap2);
-							System.out.println("Method level coupling info ###########: \n"+methodLevelLocalVariableMap.entrySet()+"\n \n");
-							
 							}
 					
 		        }
@@ -314,15 +324,13 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 			}
 			else{
 				int children = ctx.getChildCount();
-			
-				System.out.println("children:"+children);
+
 				String instanceName;
 				String associatedMethodOrVariable;
 			
 				for(int iter=0; iter<children; iter++){
 			
 					String expression = ctx.getChild(iter).getText();
-					System.out.println("Expr Under Evaluation: "+expression);
 			
 					if(expression.contains(".") 
 						&& !expression.equals(".")
@@ -342,10 +350,7 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 						){
 							int i = expression.indexOf(".");
 							instanceName = expression.substring(0,i);
-							System.out.println("instance name :"+instanceName);
 							associatedMethodOrVariable = expression.substring(i+1,expression.length());
-						
-							System.out.println("associated method name :"+associatedMethodOrVariable);
 						}
 						else if(expression.contains(".")		//This need to be eliminated.
 							&& expression.contains("\\(")
@@ -356,8 +361,7 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 								int i = expression.indexOf(".");
 								int j = expression.indexOf("(");
 								instanceName = expression.substring(0, i);
-								associatedMethodOrVariable = expression.substring(i+1, j);
-								
+								associatedMethodOrVariable = expression.substring(i+1, j);	
 						}
 						else{
 							instanceName = null;
@@ -373,33 +377,16 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 							}
 					
 					if(instanceName != null && associatedMethodOrVariable != null){
-						eLevel.add(instanceName+"."+associatedMethodOrVariable);	//this will produce a list structure. This is not used anymore.
-
 						HashMap<String,String> exprLevelMap1 = new HashMap<>();
 						exprLevelMap1.put(associatedMethodOrVariable,instanceName);	//this will produce a map structure.
 						
 							
 							if(mLevelExprDetails.get(currentMethodName) != null){
-								System.out.println("mLevel Expr Eval IF Block"+mLevelExprDetails.entrySet()+"\n");
 								((HashMap<String,String>)mLevelExprDetails.get(currentMethodName)).put(associatedMethodOrVariable,instanceName);
-					
-								System.out.println("Data from the Map : "+mLevelExprDetails.get(currentMethodName));
-							
-							
-						
-							//	mLevelExprDetails.put(currentMethodName,(HashMap<String,String>)exprLevelMap1);
-								System.out.println("Method Level Expr Detail ###########"+mLevelExprDetails.entrySet()+"\n");
 							}
 							else{
 								mLevelExprDetails.put(currentMethodName,new HashMap<String,String>());
-								System.out.println("mLevel Expr Eval ELSE Block"+mLevelExprDetails.entrySet()+"\n");
-								System.out.println("Currently Active Expr Map"+exprLevelMap1.entrySet());
-							//	System.out.println("Currently Active Expr List"+eLevel.toArray());
-							//	((HashMap<String,String>)mLevelExprDetails.get(currentMethodName)).putAll(exprLevelMap1);
-								System.out.println("Previous Data from the Map : "+mLevelExprDetails.get(currentMethodName));
 								((HashMap<String,String>)mLevelExprDetails.get(currentMethodName)).put(associatedMethodOrVariable,instanceName);
-							//	mLevelExprDetails.put(currentMethodName,(HashMap<String,String>)exprLevelMap1);
-								System.out.println("Method Level Expr Detail ###########"+mLevelExprDetails.entrySet()+"\n");
 								}
 						}	
 						else{
@@ -412,15 +399,9 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 	}
 
 	
-	
-	
-	
-	
 	/**
-	*The following method is to summarize the parsed information succinctly in a CSV file.	
+	*The following method is to summarize the parsed information succinctly to a CSV file.	
 	*/
-	
-	
 	public Void summary(){
 		
 		String cName1;
@@ -465,7 +446,7 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 			
 			//The following statements create the header section of the CSV file.
 			StringBuilder outputString = new StringBuilder();
-			String outputColumnNames = "Current ClassName, MethodNames inside current Class, Coupling Instances inside methods, ClassName of the objects coupled to methods";
+			String outputColumnNames = "Current ClassName, MethodName, Coupling Instance, Types of coupled object, Imports Used";
 			outputString.append(outputColumnNames +"\n");
 			
 			
@@ -490,16 +471,12 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 					String s1 = exprLookUpString.next();		//fetches the method or variable names.
 					String s2 = ent.getValue().get(s1);		//fetches the object names associated with the string s1.
 				
-					System.out.println("Values of S1 : "+s1);
-					System.out.println("Values of S2 : "+s2);
-				
 					String s3 = null;
 				
 					for(Map.Entry<HashMap<String,String>, String> en : classLevelLocalVariableMap.entrySet()){
 				
 						if (en.getKey().get(s2) != null){	//fetches the class name associated with the object string s2's data type.					
 							s3 = en.getKey().get(s2);
-							System.out.println("Value of S3 : "+s3);
 						}
 						else{
 							//DO NOTHING
@@ -573,12 +550,10 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 													else{
 														lookfor = s2;
 														}
-						System.out.println("looking for ____++++"+lookfor);
 						
 							for(int j=0; j<classLevelImports.size(); j++){
 								if(classLevelImports.get(j).contains(lookfor)){
 									s6 = classLevelImports.get(j);
-									System.out.println("Value of S6 : "+s6);
 								}
 								else{
 									//TO DO Error Handling if there is no entry.
@@ -592,7 +567,7 @@ public class VisitorParser extends JavaBaseVisitor<Void> {
 							}
 							else{
 							outputString.append(s5+", "+s5+"."+s4+"(), "+s2+"."+s1+", "+s2+", "+s6 + "\n");
-							//Replacing s3.s1 with s2.s1 since there is no local variable within the current class that defines s2. This assumes that s2 is a possible generic Java Class Name.	
+							//Replacing s3 with s2 for the column titled "ClassName of the objects coupled to methods", since there is no local variable within the current class that defines s2. This assumes that s2 is a possible generic Java Class Name.	
 						}
 					}
 					
